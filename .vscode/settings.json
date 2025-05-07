@@ -1,0 +1,6 @@
+{
+    "yaml.schemas": {
+        "file:///Users/impress.ai/.vscode/extensions/atlassian.atlascode-1.4.2/resources/schemas/pipelines-schema.json": "bitbucket-pipelines.yml",
+        "kubernetes://schema/v1%40configmap": "file:///Users/joelhanson/Desktop/Personal/vectorization-service/deployment/openshift/deployment.yml"
+    }
+}

@@ -1,0 +1,89 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vectorization-service-config
+data:
+  MODEL_NAME: "all-MiniLM-L6-v2"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vectorization-service
+  labels:
+    app: vectorization-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vectorization-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  template:
+    metadata:
+      labels:
+        app: vectorization-service
+    spec:
+      containers:
+        - name: vectorization-service
+          image: vectorization-service:latest
+          imagePullPolicy: Always
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: vectorization-service-config
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vectorization-service
+  labels:
+    app: vectorization-service
+spec:
+  selector:
+    app: vectorization-service
+  ports:
+  - port: 80
+    targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: vectorization-service
+  labels:
+    app: vectorization-service
+  annotations:
+    haproxy.router.openshift.io/timeout: 60s
+spec:
+  to:
+    kind: Service
+    name: vectorization-service
+  port:
+    targetPort: 8000
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

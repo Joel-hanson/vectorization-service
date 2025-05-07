@@ -1,0 +1,92 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vectorization-service-config
+data:
+  MODEL_NAME: "all-MiniLM-L6-v2"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vectorization-service
+  labels:
+    app: vectorization-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vectorization-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: vectorization-service
+    spec:
+      containers:
+      - name: vectorization-service
+        image: vectorization-service:latest  # Update with your image registry
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: vectorization-service-config
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vectorization-service
+  labels:
+    app: vectorization-service
+spec:
+  selector:
+    app: vectorization-service
+  ports:
+  - port: 80
+    targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vectorization-service-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  rules:
+  - host: vectorization.example.com  # Update with your domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: vectorization-service
+            port:
+              number: 80

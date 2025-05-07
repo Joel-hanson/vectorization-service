@@ -1,0 +1,109 @@
+openapi: 3.0.3
+info:
+  title: Vectorization Service API
+  description: A REST API for converting text to vector embeddings
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+servers:
+  - url: https://vectorization.example.com
+    description: Production server
+  - url: http://localhost:8000
+    description: Local development server
+paths:
+  /vectorize:
+    post:
+      summary: Convert text to vector embeddings
+      description: Takes a text string or array of strings and returns the corresponding vector embeddings
+      operationId: vectorizeText
+      requestBody:
+        description: Text to be vectorized
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TextInput'
+      responses:
+        '200':
+          description: Successful response with vector embeddings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VectorOutput'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /health:
+    get:
+      summary: Check service health
+      description: Returns the health status of the service
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+components:
+  schemas:
+    TextInput:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          oneOf:
+            - type: string
+              description: A single text string to vectorize
+              example: "This is a sample text to vectorize"
+            - type: array
+              description: Multiple texts to vectorize
+              items:
+                type: string
+              example: ["This is the first text", "This is the second text"]
+    VectorOutput:
+      type: object
+      properties:
+        vector:
+          type: array
+          description: Vector embeddings for the input text(s)
+          items:
+            type: array
+            items:
+              type: number
+              format: float
+        dimensions:
+          type: integer
+          description: The number of dimensions in each vector
+          example: 384
+        model:
+          type: string
+          description: The model used for vectorization
+          example: "all-MiniLM-L6-v2"
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "ok"
+        model:
+          type: string
+          example: "all-MiniLM-L6-v2"
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+          example: "Vectorization failed: Text exceeds maximum length"
